@@ -1,0 +1,73 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "reserved": {
+      "$code": {
+        ".read": "auth != null",
+        ".write": "auth != null && $code.matches(/^\\d{4}$/) && ((!data.exists() && newData.child('uid').val() == auth.uid) || (data.child('uid').val() == auth.uid && newData.child('uid').val() == auth.uid))",
+        ".validate": "!newData.exists() || (newData.hasChildren(['uid','createdAt']) && newData.child('uid').isString())"
+      }
+    },
+    "accounts": {
+      "$uid": {
+        ".read": "auth != null && auth.uid == $uid",
+        ".write": "auth != null && auth.uid == $uid",
+        ".validate": "!newData.exists() || (newData.child('code').isString() && newData.child('code').val().matches(/^\\d{4}$/) && root.child('reserved').child(newData.child('code').val()).child('uid').val() == auth.uid && (!data.exists() || data.child('code').val() == newData.child('code').val()))"
+      }
+    },
+    "users": {
+      "$code": {
+        ".read": "auth != null",
+        ".write": "auth != null && root.child('reserved').child($code).child('uid').val() == auth.uid && newData.child('ownerUid').val() == auth.uid",
+        ".validate": "$code.matches(/^\\d{4}$/) && (!newData.exists() || newData.child('ownerUid').isString())"
+      }
+    },
+    "presence": {
+      "$code": {
+        ".read": "auth != null",
+        "$connection": {
+          ".write": "auth != null && root.child('reserved').child($code).child('uid').val() == auth.uid"
+        }
+      }
+    },
+    "conversations": {
+      "$a": {
+        "$b": {
+          ".read": "auth != null && (root.child('reserved').child($a).child('uid').val() == auth.uid || root.child('reserved').child($b).child('uid').val() == auth.uid)",
+          ".write": "auth != null && (root.child('reserved').child($a).child('uid').val() == auth.uid || root.child('reserved').child($b).child('uid').val() == auth.uid)",
+          "$id": {
+            ".validate": "!newData.exists() || (newData.hasChildren(['id','from','to','ts','iv','ciphertext','version']) && newData.child('id').val() == $id && ((newData.child('from').val() == $a && newData.child('to').val() == $b) || (newData.child('from').val() == $b && newData.child('to').val() == $a)) && newData.child('version').val() == 1)"
+          }
+        }
+      }
+    },
+    "inbox": {
+      "$to": {
+        ".read": "auth != null && root.child('reserved').child($to).child('uid').val() == auth.uid",
+        "$id": {
+          ".write": "auth != null && ((!newData.exists() && root.child('reserved').child($to).child('uid').val() == auth.uid) || (newData.exists() && newData.child('to').val() == $to && root.child('reserved').child(newData.child('from').val()).child('uid').val() == auth.uid))",
+          ".validate": "!newData.exists() || (newData.child('id').val() == $id && newData.child('version').val() == 1)"
+        }
+      }
+    },
+    "events": {
+      "$to": {
+        ".read": "auth != null && root.child('reserved').child($to).child('uid').val() == auth.uid",
+        "$event": {
+          ".write": "auth != null && ((!newData.exists() && root.child('reserved').child($to).child('uid').val() == auth.uid) || (newData.exists() && newData.child('from').isString() && root.child('reserved').child(newData.child('from').val()).child('uid').val() == auth.uid))",
+          ".validate": "!newData.exists() || (newData.hasChildren(['from','type','payload','ts']) && newData.child('from').val() != $to)"
+        }
+      }
+    },
+    "contacts": {
+      "$code": {
+        ".read": "auth != null && root.child('reserved').child($code).child('uid').val() == auth.uid",
+        ".write": "auth != null && root.child('reserved').child($code).child('uid').val() == auth.uid",
+        "$peer": {
+          ".validate": "!newData.exists() || ($peer.matches(/^\\d{4}$/) && newData.child('addedAt').isNumber() && newData.child('lastActivity').isNumber())"
+        }
+      }
+    }
+  }
+}
